@@ -42,7 +42,8 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
                   callback:(RCTResponseSenderBlock)callback) {
 
     NSArray *allowedUTIs = [RCTConvert NSArray:options[@"filetype"]];
-    UIDocumentMenuViewController *documentPicker = [[UIDocumentMenuViewController alloc] initWithDocumentTypes:(NSArray *)allowedUTIs inMode:UIDocumentPickerModeImport];
+    UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:(NSArray *)allowedUTIs inMode:UIDocumentPickerModeImport];
+
 
     [composeCallbacks addObject:callback];
 
@@ -59,24 +60,6 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
         NSNumber *top = [RCTConvert NSNumber:options[@"top"]];
         NSNumber *left = [RCTConvert NSNumber:options[@"left"]];
         [documentPicker.popoverPresentationController setSourceRect: CGRectMake([left floatValue], [top floatValue], 0, 0)];
-        [documentPicker.popoverPresentationController setSourceView: rootViewController.view];
-    }
-
-    [rootViewController presentViewController:documentPicker animated:YES completion:nil];
-}
-
-
-- (void)documentMenu:(UIDocumentMenuViewController *)documentMenu didPickDocumentPicker:(UIDocumentPickerViewController *)documentPicker {
-    documentPicker.delegate = self;
-    documentPicker.modalPresentationStyle = UIModalPresentationFormSheet;
-
-    UIViewController *rootViewController = [[[[UIApplication sharedApplication]delegate] window] rootViewController];
-    
-    while (rootViewController.modalViewController) {
-        rootViewController = rootViewController.modalViewController;
-    }
-    if ( IDIOM == IPAD ) {
-        [documentPicker.popoverPresentationController setSourceRect: CGRectMake(rootViewController.view.frame.size.width/2, rootViewController.view.frame.size.height - rootViewController.view.frame.size.height / 6, 0, 0)];
         [documentPicker.popoverPresentationController setSourceView: rootViewController.view];
     }
 
@@ -111,6 +94,16 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
         }];
 
         [url stopAccessingSecurityScopedResource];
+    }
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller
+{
+    if (controller.documentPickerMode == UIDocumentPickerModeImport) {
+        RCTResponseSenderBlock callback = [composeCallbacks lastObject];
+        [composeCallbacks removeLastObject];
+        
+        callback(@[@"User canceled document picker", [NSNull null]]);
     }
 }
 
